@@ -1,0 +1,64 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: orchestrator-service
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+
+app:
+  service-name: orchestrator-service
+  session:
+    encryption-key: ${SESSION_ENCRYPTION_KEY}
+  core:
+    saldo-url: ${CORE_SALDO_URL:http://localhost:5002}
+    transferencias-url: ${CORE_TRANSFERENCIAS_URL:http://localhost:5003}
+
+springdoc:
+  api-docs:
+    path: /orchestrator/openapi.json
+  swagger-ui:
+    path: /orchestrator/docs
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      coreSaldo:
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 5
+        register-health-indicator: true
+      coreTransferencias:
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 5
+  retry:
+    instances:
+      coreSaldo:
+        max-attempts: 3
+        wait-duration: 1s
+        retry-exceptions:
+          - org.springframework.web.client.HttpServerErrorException
+          - java.io.IOException
+      coreTransferencias:
+        max-attempts: 2
+        wait-duration: 1s
+        retry-exceptions:
+          - org.springframework.web.client.HttpServerErrorException
+          - java.io.IOException
+  timelimiter:
+    instances:
+      coreSaldo:
+        timeout-duration: 5s
+      coreTransferencias:
+        timeout-duration: 8s
+
+logging:
+  level:
+    com.financial: INFO
